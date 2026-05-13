@@ -6,6 +6,7 @@ import org.eclipse.milo.opcua.sdk.server.api.ManagedNamespaceWithLifecycle;
 import org.eclipse.milo.opcua.sdk.server.api.MonitoredItem;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaFolderNode;
 import org.eclipse.milo.opcua.sdk.server.nodes.UaVariableNode;
+import org.eclipse.milo.opcua.stack.core.AttributeId;
 import org.eclipse.milo.opcua.stack.core.Identifiers;
 import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
 import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText;
@@ -16,11 +17,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
     public static final String NAMESPACE_URI = "urn:opcua-hmi:simulation";
 
     private final Map<String, UaVariableNode> nodes = new LinkedHashMap<>();
+    private final Map<Object, DataItem> monitoredDataItems = new ConcurrentHashMap<>();
 
     public OpcUaSimulationNamespace(OpcUaServer server) {
         super(server, NAMESPACE_URI);
@@ -189,7 +192,9 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
     private void write(String path, Object value) {
         UaVariableNode node = nodes.get(path);
         if (node != null) {
-            node.setValue(new DataValue(new Variant(value)));
+            DataValue dataValue = new DataValue(new Variant(value));
+            node.setValue(dataValue);
+            sampleDataItemsForNode(node);
         }
     }
 
@@ -199,17 +204,59 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
 
     @Override
     public void onDataItemsCreated(List<DataItem> dataItems) {
+        dataItems.forEach(dataItem -> monitoredDataItems.put(dataItem.getId(), dataItem));
+        sampleDataItems(dataItems);
     }
 
     @Override
     public void onDataItemsModified(List<DataItem> dataItems) {
+        dataItems.forEach(dataItem -> monitoredDataItems.put(dataItem.getId(), dataItem));
+        sampleDataItems(dataItems);
     }
 
     @Override
     public void onDataItemsDeleted(List<DataItem> dataItems) {
+        dataItems.forEach(dataItem -> monitoredDataItems.remove(dataItem.getId()));
     }
 
     @Override
     public void onMonitoringModeChanged(List<MonitoredItem> monitoredItems) {
+        sampleDataItems(monitoredItems.stream()
+                .filter(DataItem.class::isInstance)
+                .map(DataItem.class::cast)
+                .toList());
+    }
+
+    private void sampleDataItems(List<DataItem> dataItems) {
+        for (DataItem dataItem : dataItems) {
+            sampleDataItem(dataItem);
+        }
+    }
+
+    private void sampleDataItemsForNode(UaVariableNode node) {
+        monitoredDataItems.values()
+                .stream()
+                .filter(DataItem::isSamplingEnabled)
+                .filter(dataItem -> node.getNodeId().equals(dataItem.getReadValueId().getNodeId()))
+                .forEach(this::sampleDataItem);
+    }
+
+    private void sampleDataItem(DataItem dataItem) {
+        if (!AttributeId.Value.isEqual(dataItem.getReadValueId().getAttributeId())) {
+            return;
+        }
+
+        UaVariableNode node = findNode(dataItem.getReadValueId().getNodeId());
+        if (node != null) {
+            dataItem.setValue(DataValue.derivedValue(node.getValue(), dataItem.getTimestampsToReturn()));
+        }
+    }
+
+    private UaVariableNode findNode(NodeId nodeId) {
+        return nodes.values()
+                .stream()
+                .filter(node -> node.getNodeId().equals(nodeId))
+                .findFirst()
+                .orElse(null);
     }
 }

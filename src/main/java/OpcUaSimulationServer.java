@@ -23,7 +23,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.Security;
 import java.security.cert.X509Certificate;
-import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -109,18 +108,23 @@ public class OpcUaSimulationServer {
     }
 
     private Set<EndpointConfiguration> createEndpoints(X509Certificate certificate) {
-        EndpointConfiguration endpoint = EndpointConfiguration.newBuilder()
+        EndpointConfiguration baseEndpoint = createEndpoint(certificate, "");
+        EndpointConfiguration hmiEndpoint = createEndpoint(certificate, PATH);
+
+        return Set.of(baseEndpoint, hmiEndpoint);
+    }
+
+    private EndpointConfiguration createEndpoint(X509Certificate certificate, String path) {
+        return EndpointConfiguration.newBuilder()
                 .setBindAddress("0.0.0.0")
                 .setBindPort(TCP_PORT)
                 .setHostname("localhost")
-                .setPath(PATH)
+                .setPath(path)
                 .setCertificate(certificate)
                 .setSecurityPolicy(SecurityPolicy.None)
                 .setSecurityMode(MessageSecurityMode.None)
                 .setTransportProfile(TransportProfile.TCP_UASC_UABINARY)
                 .addTokenPolicies(USER_TOKEN_POLICY_ANONYMOUS)
                 .build();
-
-        return Collections.singleton(endpoint);
     }
 }
