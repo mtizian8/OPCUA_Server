@@ -38,6 +38,7 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
         gvl.g_bStop = readBoolean("Commands/Stop");
         gvl.g_bZaehlerReset = readBoolean("Commands/CounterReset");
         gvl.g_nGeschwindigkeit = clamp(readInt("Commands/Speed"), 0, 10);
+        write("Commands/Speed", gvl.g_nGeschwindigkeit);
         gvl.g_bAutomatikbetrieb = readBoolean("Commands/AutomaticMode");
         gvl.g_bHand_Weiche1 = readBoolean("Commands/ManualDiverter1");
         gvl.g_bHand_Weiche2 = readBoolean("Commands/ManualDiverter2");
@@ -56,6 +57,7 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
         write("Status/ProductARecognized", gvl.g_bProduktAErkannt);
         write("Status/ProductBRecognized", gvl.g_bProduktBErkannt);
         write("Status/RejectRecognized", gvl.g_bAusschussErkannt);
+        write("Status/Speed", gvl.g_nGeschwindigkeit);
         write("Sensors/Infeed", gvl.g_bSensor_Einlauf);
         write("Sensors/ProductA", gvl.g_bSensor_TypA);
         write("Sensors/ProductB", gvl.g_bSensor_TypB);
@@ -132,6 +134,7 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
         variable(status, "ProductARecognized", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
         variable(status, "ProductBRecognized", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
         variable(status, "RejectRecognized", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(status, "Speed", Identifiers.Int32, 5, AccessLevel.READ_ONLY);
 
         variable(sensors, "Infeed", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
         variable(sensors, "ProductA", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
