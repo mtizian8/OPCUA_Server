@@ -60,9 +60,9 @@ public class PLC_PRG {
         GVL.g_bSensor_TypB = fbAnimation.bSensor_TypB;
         GVL.g_bSensor_Ausschuss = fbAnimation.bSensor_Ausschuss;
         GVL.g_bSensor_Auslauf = fbAnimation.bSensor_Auslauf;
-        GVL.g_bProduktAErkannt = GVL.g_bSensor_TypA;
-        GVL.g_bProduktBErkannt = GVL.g_bSensor_TypB;
-        GVL.g_bAusschussErkannt = GVL.g_bSensor_Ausschuss;
+        GVL.g_bProduktAErkannt = fbAnimation.bProduktAErkannt;
+        GVL.g_bProduktBErkannt = fbAnimation.bProduktBErkannt;
+        GVL.g_bAusschussErkannt = fbAnimation.bAusschussErkannt;
         GVL.g_bLampe_Betrieb = GVL.g_bBandLaeuft;
         GVL.g_bLampe_BandSteht = !GVL.g_bBandLaeuft;
         GVL.g_bLampe_ProduktA = GVL.g_bProduktAErkannt;
@@ -70,6 +70,8 @@ public class PLC_PRG {
         GVL.g_bLampe_Ausschuss = GVL.g_bAusschussErkannt;
         GVL.g_bLampe_Weiche1 = GVL.g_bWeiche1;
         GVL.g_bLampe_Weiche2 = GVL.g_bWeiche2;
+        GVL.g_bLampe_Automatikbetrieb = GVL.g_bAutomatikbetrieb;
+        GVL.g_bLampe_Handbetrieb = !GVL.g_bAutomatikbetrieb;
 
         // 4. Sortierer
         fbSortierer.update(

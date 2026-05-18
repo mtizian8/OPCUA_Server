@@ -12,14 +12,18 @@ public class Main {
 
         GVL.g_nGeschwindigkeit = 5;
 
-        System.out.println("OPC UA Server laeuft auf: opc.tcp://localhost:4840/OPCUA_HMI");
+        System.out.println("OPC UA server running at: opc.tcp://localhost:4840/OPCUA_HMI");
         System.out.print("\033[2J");
         long lastConsoleUpdateMs = 0;
+        final long updateIntervalMs = 20L;
 
         while (true) {
+            long cycleStartMs = System.currentTimeMillis();
+
             opcUaServer.readCommandsInto(GVL);
             plc_prg.cycle();
             opcUaServer.writeStateFrom(GVL);
+            opcUaServer.writeSystemInfo(System.currentTimeMillis() - cycleStartMs, updateIntervalMs, true);
 
             long nowMs = System.currentTimeMillis();
             if (nowMs - lastConsoleUpdateMs >= 100) {
@@ -29,49 +33,51 @@ public class Main {
                 lastConsoleUpdateMs = nowMs;
             }
 
-            Thread.sleep(20);
+            Thread.sleep(updateIntervalMs);
         }
     }
 
     private static String formatBlockStatus(GVL GVL) {
         return String.format("""
-                ========== ANLAGENSTATUS ==========
-                Band laeuft:        %-5s
-                Band stop:          %-5s
-                Automatikbetrieb:   %-5s
-                Geschwindigkeit:    %-5d
+                ========== SYSTEM STATUS ==========
+                Conveyor running:   %-5s
+                Conveyor stopped:   %-5s
+                Automatic mode:     %-5s
+                Speed:              %-5d
 
-                Produkt aktiv:      %-5s
-                Produkt Typ:        %-5d
-                Produkt A erkannt:  %-5s
-                Produkt B erkannt:  %-5s
-                Ausschuss erkannt:  %-5s
+                Product active:     %-5s
+                Product type:       %-5d
+                Product A detected: %-5s
+                Product B detected: %-5s
+                Reject detected:    %-5s
 
-                Block sichtbar:     %-5s
-                Block Label:        %-5s
+                Block visible:      %-5s
+                Block label:        %-5s
                 Block X/Y:          %d / %d
 
-                Weiche 1:           %-5s
-                Weiche 2:           %-5s
+                Diverter 1:         %-5s
+                Diverter 2:         %-5s
 
-                Sensor Einlauf:     %-5s
-                Sensor Typ A:       %-5s
-                Sensor Typ B:       %-5s
-                Sensor Ausschuss:   %-5s
-                Sensor Auslauf:     %-5s
+                Sensor infeed:      %-5s
+                Sensor product A:   %-5s
+                Sensor product B:   %-5s
+                Sensor reject:      %-5s
+                Sensor outfeed:     %-5s
 
-                Lampe Betrieb:      %-5s
-                Lampe Band steht:   %-5s
-                Lampe Produkt A:    %-5s
-                Lampe Produkt B:    %-5s
-                Lampe Ausschuss:    %-5s
-                Lampe Weiche 1:     %-5s
-                Lampe Weiche 2:     %-5s
+                Lamp operation:     %-5s
+                Lamp stopped:       %-5s
+                Lamp product A:     %-5s
+                Lamp product B:     %-5s
+                Lamp reject:        %-5s
+                Lamp diverter 1:    %-5s
+                Lamp diverter 2:    %-5s
+                Lamp automatic:     %-5s
+                Lamp manual:        %-5s
 
-                Zaehler A:          %-5d
-                Zaehler B:          %-5d
-                Zaehler Ausschuss:  %-5d
-                Zaehler Gesamt:     %-5d
+                Counter A:          %-5d
+                Counter B:          %-5d
+                Counter reject:     %-5d
+                Counter total:      %-5d
                 ===================================
                 """,
                 GVL.g_bBandLaeuft,
@@ -101,6 +107,8 @@ public class Main {
                 GVL.g_bLampe_Ausschuss,
                 GVL.g_bLampe_Weiche1,
                 GVL.g_bLampe_Weiche2,
+                GVL.g_bLampe_Automatikbetrieb,
+                GVL.g_bLampe_Handbetrieb,
                 GVL.g_nZaehler_A,
                 GVL.g_nZaehler_B,
                 GVL.g_nZaehler_Aus,

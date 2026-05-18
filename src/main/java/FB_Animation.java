@@ -12,6 +12,10 @@ public class FB_Animation {
     public boolean bSensor_Ausschuss;
     public boolean bSensor_Auslauf;
 
+    public boolean bProduktAErkannt;
+    public boolean bProduktBErkannt;
+    public boolean bAusschussErkannt;
+
     public boolean bAnkunft;
     public int nAnkunftTyp;
 
@@ -138,11 +142,10 @@ public class FB_Animation {
                 ? bVisible && nTyp == 2 && (bSensorTypBLatched || nPhase == 2)
                 : bHand_Weiche2;
 
-        bSensor_Einlauf = bSensorEinlaufLatched;
-        bSensor_TypA = bSensorTypALatched;
-        bSensor_TypB = bSensorTypBLatched;
-        bSensor_Ausschuss = bSensorAusschussLatched;
-        bSensor_Auslauf = bSensorAuslaufLatched;
+        bProduktAErkannt = bVisible && bSensorTypALatched;
+        bProduktBErkannt = bVisible && bSensorTypBLatched;
+        bAusschussErkannt = bVisible && bSensorAusschussLatched;
+        updateLiveSensors();
     }
 
     private void updateSensorLatches() {
@@ -169,5 +172,17 @@ public class FB_Animation {
         if (nPhase == 2 && nPosY <= 200) {
             bSensorAuslaufLatched = true;
         }
+    }
+
+    private void updateLiveSensors() {
+        bSensor_Einlauf = bVisible && nPhase == 1 && isInRange(nPosX, 113, 137);
+        bSensor_TypA = bVisible && nTyp == 1 && isInRange(nPosX, 220, 244);
+        bSensor_TypB = bVisible && nTyp == 2 && isInRange(nPosX, 445, 469);
+        bSensor_Ausschuss = bVisible && nTyp == 3 && isInRange(nPosX, 620, 644);
+        bSensor_Auslauf = bVisible && nPhase == 2 && isInRange(nPosY, 176, 200);
+    }
+
+    private boolean isInRange(int value, int min, int max) {
+        return value >= min && value <= max;
     }
 }

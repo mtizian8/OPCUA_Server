@@ -37,6 +37,8 @@ public class GVL {
     public boolean g_bLampe_Ausschuss;
     public boolean g_bLampe_Weiche1;
     public boolean g_bLampe_Weiche2;
+    public boolean g_bLampe_Automatikbetrieb;
+    public boolean g_bLampe_Handbetrieb;
 
     // Zähler
     public int g_nZaehler_A;

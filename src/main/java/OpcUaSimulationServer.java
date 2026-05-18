@@ -107,6 +107,10 @@ public class OpcUaSimulationServer {
         namespace.writeStateFrom(gvl);
     }
 
+    public void writeSystemInfo(long cycleTimeMs, long updateIntervalMs, boolean simulationRunning) {
+        namespace.writeSystemInfo(cycleTimeMs, updateIntervalMs, simulationRunning);
+    }
+
     private Set<EndpointConfiguration> createEndpoints(X509Certificate certificate) {
         EndpointConfiguration baseEndpoint = createEndpoint(certificate, "");
         EndpointConfiguration hmiEndpoint = createEndpoint(certificate, PATH);

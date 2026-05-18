@@ -9,6 +9,7 @@ import org.eclipse.milo.opcua.sdk.server.nodes.UaVariableNode;
 import org.eclipse.milo.opcua.stack.core.AttributeId;
 import org.eclipse.milo.opcua.stack.core.Identifiers;
 import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
+import org.eclipse.milo.opcua.stack.core.types.builtin.DateTime;
 import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.Variant;
@@ -24,6 +25,8 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
 
     private final Map<String, UaVariableNode> nodes = new LinkedHashMap<>();
     private final Map<Object, DataItem> monitoredDataItems = new ConcurrentHashMap<>();
+    private final long startupTimeMs = System.currentTimeMillis();
+    private boolean heartbeat;
 
     public OpcUaSimulationNamespace(OpcUaServer server) {
         super(server, NAMESPACE_URI);
@@ -33,46 +36,62 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
     public void readCommandsInto(GVL gvl) {
         gvl.g_bStart = readBoolean("Commands/Start");
         gvl.g_bStop = readBoolean("Commands/Stop");
-        gvl.g_bZaehlerReset = readBoolean("Commands/ZaehlerReset");
-        gvl.g_nGeschwindigkeit = clamp(readInt("Commands/Geschwindigkeit"), 0, 10);
-        gvl.g_bAutomatikbetrieb = readBoolean("Commands/Automatikbetrieb");
-        gvl.g_bHand_Weiche1 = readBoolean("Commands/Hand_Weiche1");
-        gvl.g_bHand_Weiche2 = readBoolean("Commands/Hand_Weiche2");
+        gvl.g_bZaehlerReset = readBoolean("Commands/CounterReset");
+        gvl.g_nGeschwindigkeit = clamp(readInt("Commands/Speed"), 0, 10);
+        gvl.g_bAutomatikbetrieb = readBoolean("Commands/AutomaticMode");
+        gvl.g_bHand_Weiche1 = readBoolean("Commands/ManualDiverter1");
+        gvl.g_bHand_Weiche2 = readBoolean("Commands/ManualDiverter2");
     }
 
     public void writeStateFrom(GVL gvl) {
-        write("Status/BandLaeuft", gvl.g_bBandLaeuft);
-        write("Status/BandStop", gvl.g_bBandStop);
-        write("Status/ProduktTyp", gvl.g_nProduktTyp);
-        write("Status/ProduktAktiv", gvl.g_bProduktAktiv);
-        write("Status/Weiche1", gvl.g_bWeiche1);
-        write("Status/Weiche2", gvl.g_bWeiche2);
-        write("Status/Automatikbetrieb", gvl.g_bAutomatikbetrieb);
-        write("Status/ProduktAErkannt", gvl.g_bProduktAErkannt);
-        write("Status/ProduktBErkannt", gvl.g_bProduktBErkannt);
-        write("Status/AusschussErkannt", gvl.g_bAusschussErkannt);
-        write("Sensors/Sensor_Einlauf", gvl.g_bSensor_Einlauf);
-        write("Sensors/Sensor_TypA", gvl.g_bSensor_TypA);
-        write("Sensors/Sensor_TypB", gvl.g_bSensor_TypB);
-        write("Sensors/Sensor_Ausschuss", gvl.g_bSensor_Ausschuss);
-        write("Sensors/Sensor_Auslauf", gvl.g_bSensor_Auslauf);
-        write("Lamps/Lampe_Betrieb", gvl.g_bLampe_Betrieb);
-        write("Lamps/Lampe_BandSteht", gvl.g_bLampe_BandSteht);
-        write("Lamps/Lampe_ProduktA", gvl.g_bLampe_ProduktA);
-        write("Lamps/Lampe_ProduktB", gvl.g_bLampe_ProduktB);
-        write("Lamps/Lampe_Ausschuss", gvl.g_bLampe_Ausschuss);
-        write("Lamps/Lampe_Weiche1", gvl.g_bLampe_Weiche1);
-        write("Lamps/Lampe_Weiche2", gvl.g_bLampe_Weiche2);
-        write("Counters/Zaehler_A", gvl.g_nZaehler_A);
-        write("Counters/Zaehler_B", gvl.g_nZaehler_B);
-        write("Counters/Zaehler_Aus", gvl.g_nZaehler_Aus);
-        write("Counters/Zaehler_Gesamt", gvl.g_nZaehler_Gesamt);
+        write("Status/ConveyorRunning", gvl.g_bBandLaeuft);
+        write("Status/ConveyorStopped", gvl.g_bBandStop);
+        write("Status/ProductType", gvl.g_nProduktTyp);
+        write("Status/ProductActive", gvl.g_bProduktAktiv);
+        write("Status/Diverter1", gvl.g_bWeiche1);
+        write("Status/Diverter2", gvl.g_bWeiche2);
+        write("Status/AutomaticMode", gvl.g_bAutomatikbetrieb);
+        write("Status/ManualMode", !gvl.g_bAutomatikbetrieb);
+        write("Status/OperationMode", gvl.g_bAutomatikbetrieb ? 1 : 0);
+        write("Status/ProductARecognized", gvl.g_bProduktAErkannt);
+        write("Status/ProductBRecognized", gvl.g_bProduktBErkannt);
+        write("Status/RejectRecognized", gvl.g_bAusschussErkannt);
+        write("Sensors/Infeed", gvl.g_bSensor_Einlauf);
+        write("Sensors/ProductA", gvl.g_bSensor_TypA);
+        write("Sensors/ProductB", gvl.g_bSensor_TypB);
+        write("Sensors/Reject", gvl.g_bSensor_Ausschuss);
+        write("Sensors/Outfeed", gvl.g_bSensor_Auslauf);
+        write("Lamps/Operation", gvl.g_bLampe_Betrieb);
+        write("Lamps/ConveyorStopped", gvl.g_bLampe_BandSteht);
+        write("Lamps/ProductA", gvl.g_bLampe_ProduktA);
+        write("Lamps/ProductB", gvl.g_bLampe_ProduktB);
+        write("Lamps/Reject", gvl.g_bLampe_Ausschuss);
+        write("Lamps/Diverter1", gvl.g_bLampe_Weiche1);
+        write("Lamps/Diverter2", gvl.g_bLampe_Weiche2);
+        write("Lamps/AutomaticMode", gvl.g_bLampe_Automatikbetrieb);
+        write("Lamps/ManualMode", gvl.g_bLampe_Handbetrieb);
+        write("Counters/ProductA", gvl.g_nZaehler_A);
+        write("Counters/ProductB", gvl.g_nZaehler_B);
+        write("Counters/Reject", gvl.g_nZaehler_Aus);
+        write("Counters/Total", gvl.g_nZaehler_Gesamt);
         write("Animation/BlockPosX", gvl.g_nBlockPosX);
         write("Animation/BlockPosY", gvl.g_nBlockPosY);
         write("Animation/BlockVisible", gvl.g_bBlockVisible);
         write("Animation/BlockLabel", gvl.g_sBlockLabel);
 
-        write("Commands/ZaehlerReset", false);
+        write("Commands/CounterReset", false);
+    }
+
+    public void writeSystemInfo(long cycleTimeMs, long updateIntervalMs, boolean simulationRunning) {
+        long nowMs = System.currentTimeMillis();
+        heartbeat = !heartbeat;
+
+        write("System/ServerTime", DateTime.now());
+        write("System/UptimeSeconds", (int) ((nowMs - startupTimeMs) / 1000L));
+        write("System/CycleTimeMs", (int) cycleTimeMs);
+        write("System/UpdateIntervalMs", (int) updateIntervalMs);
+        write("System/Heartbeat", heartbeat);
+        write("System/SimulationRunning", simulationRunning);
     }
 
     private void createNodes() {
@@ -91,49 +110,61 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
         UaFolderNode lamps = childFolder(root, "Lamps");
         UaFolderNode counters = childFolder(root, "Counters");
         UaFolderNode animation = childFolder(root, "Animation");
+        UaFolderNode system = childFolder(root, "System");
 
         variable(commands, "Start", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
         variable(commands, "Stop", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
-        variable(commands, "ZaehlerReset", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
-        variable(commands, "Geschwindigkeit", Identifiers.Int32, 5, AccessLevel.READ_WRITE);
-        variable(commands, "Automatikbetrieb", Identifiers.Boolean, true, AccessLevel.READ_WRITE);
-        variable(commands, "Hand_Weiche1", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
-        variable(commands, "Hand_Weiche2", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
+        variable(commands, "CounterReset", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
+        variable(commands, "Speed", Identifiers.Int32, 5, AccessLevel.READ_WRITE);
+        variable(commands, "AutomaticMode", Identifiers.Boolean, true, AccessLevel.READ_WRITE);
+        variable(commands, "ManualDiverter1", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
+        variable(commands, "ManualDiverter2", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
 
-        variable(status, "BandLaeuft", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(status, "BandStop", Identifiers.Boolean, true, AccessLevel.READ_ONLY);
-        variable(status, "ProduktTyp", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
-        variable(status, "ProduktAktiv", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(status, "Weiche1", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(status, "Weiche2", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(status, "Automatikbetrieb", Identifiers.Boolean, true, AccessLevel.READ_ONLY);
-        variable(status, "ProduktAErkannt", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(status, "ProduktBErkannt", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(status, "AusschussErkannt", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(status, "ConveyorRunning", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(status, "ConveyorStopped", Identifiers.Boolean, true, AccessLevel.READ_ONLY);
+        variable(status, "ProductType", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
+        variable(status, "ProductActive", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(status, "Diverter1", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(status, "Diverter2", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(status, "AutomaticMode", Identifiers.Boolean, true, AccessLevel.READ_ONLY);
+        variable(status, "ManualMode", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(status, "OperationMode", Identifiers.Int32, 1, AccessLevel.READ_ONLY);
+        variable(status, "ProductARecognized", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(status, "ProductBRecognized", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(status, "RejectRecognized", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
 
-        variable(sensors, "Sensor_Einlauf", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(sensors, "Sensor_TypA", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(sensors, "Sensor_TypB", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(sensors, "Sensor_Ausschuss", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(sensors, "Sensor_Auslauf", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(sensors, "Infeed", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(sensors, "ProductA", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(sensors, "ProductB", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(sensors, "Reject", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(sensors, "Outfeed", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
 
-        variable(lamps, "Lampe_Betrieb", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(lamps, "Lampe_BandSteht", Identifiers.Boolean, true, AccessLevel.READ_ONLY);
-        variable(lamps, "Lampe_ProduktA", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(lamps, "Lampe_ProduktB", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(lamps, "Lampe_Ausschuss", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(lamps, "Lampe_Weiche1", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
-        variable(lamps, "Lampe_Weiche2", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(lamps, "Operation", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(lamps, "ConveyorStopped", Identifiers.Boolean, true, AccessLevel.READ_ONLY);
+        variable(lamps, "ProductA", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(lamps, "ProductB", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(lamps, "Reject", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(lamps, "Diverter1", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(lamps, "Diverter2", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(lamps, "AutomaticMode", Identifiers.Boolean, true, AccessLevel.READ_ONLY);
+        variable(lamps, "ManualMode", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
 
-        variable(counters, "Zaehler_A", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
-        variable(counters, "Zaehler_B", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
-        variable(counters, "Zaehler_Aus", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
-        variable(counters, "Zaehler_Gesamt", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
+        variable(counters, "ProductA", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
+        variable(counters, "ProductB", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
+        variable(counters, "Reject", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
+        variable(counters, "Total", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
 
         variable(animation, "BlockPosX", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
         variable(animation, "BlockPosY", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
         variable(animation, "BlockVisible", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
         variable(animation, "BlockLabel", Identifiers.String, "", AccessLevel.READ_ONLY);
+
+        variable(system, "ServerTime", Identifiers.DateTime, DateTime.now(), AccessLevel.READ_ONLY);
+        variable(system, "UptimeSeconds", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
+        variable(system, "CycleTimeMs", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
+        variable(system, "UpdateIntervalMs", Identifiers.Int32, 20, AccessLevel.READ_ONLY);
+        variable(system, "Heartbeat", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
+        variable(system, "SimulationRunning", Identifiers.Boolean, true, AccessLevel.READ_ONLY);
     }
 
     private UaFolderNode childFolder(UaFolderNode parent, String name) {
