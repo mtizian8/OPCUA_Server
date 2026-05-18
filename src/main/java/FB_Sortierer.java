@@ -13,12 +13,7 @@ public class FB_Sortierer {
         rTrig.update(bAnkunft);
 
         if (bReset) {
-            nZaehler_A = 0;
-            nZaehler_B = 0;
-            nZaehler_Aus = 0;
-            nZaehler_Gesamt = 0;
-            bWeiche1 = false;
-            bWeiche2 = false;
+            reset();
         }
 
         else if (rTrig.Q) {
@@ -39,5 +34,15 @@ public class FB_Sortierer {
                             nZaehler_B +
                             nZaehler_Aus;
         }
+    }
+
+    public void reset() {
+        nZaehler_A = 0;
+        nZaehler_B = 0;
+        nZaehler_Aus = 0;
+        nZaehler_Gesamt = 0;
+        bWeiche1 = false;
+        bWeiche2 = false;
+        rTrig.reset();
     }
 }

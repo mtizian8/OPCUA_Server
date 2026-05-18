@@ -7,4 +7,9 @@ public class R_TRIG {
         Q = CLK && !lastCLK;
         lastCLK = CLK;
     }
+
+    public void reset() {
+        Q = false;
+        lastCLK = false;
+    }
 }

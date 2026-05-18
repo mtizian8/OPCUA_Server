@@ -5,6 +5,7 @@ public class GVL {
     public boolean g_bBandLaeuft;
     public boolean g_bBandStop;
     public boolean g_bZaehlerReset;
+    public boolean g_bSystemReset;
     public boolean g_bAutomatikbetrieb = true;
     public boolean g_bHand_Weiche1;
     public boolean g_bHand_Weiche2;

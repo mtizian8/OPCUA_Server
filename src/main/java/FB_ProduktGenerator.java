@@ -24,4 +24,11 @@ public class FB_ProduktGenerator {
             nProduktTyp = nRandCounter + 1; // 1, 2 oder 3
         }
     }
+
+    public void reset() {
+        nProduktTyp = 0;
+        bNeuesProdukt = false;
+        nRandCounter = 0;
+        tonIntervall.reset();
+    }
 }

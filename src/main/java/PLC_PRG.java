@@ -11,6 +11,11 @@ public class PLC_PRG {
     }
 
     public void cycle() {
+        if (GVL.g_bSystemReset) {
+            reset();
+            return;
+        }
+
         // 1. Band
         fbBand.update(
                 GVL.g_bStart,
@@ -84,5 +89,55 @@ public class PLC_PRG {
         GVL.g_nZaehler_B = fbSortierer.nZaehler_B;
         GVL.g_nZaehler_Aus = fbSortierer.nZaehler_Aus;
         GVL.g_nZaehler_Gesamt = fbSortierer.nZaehler_Gesamt;
+    }
+
+    private void reset() {
+        fbBand.reset();
+        fbGenerator.reset();
+        fbAnimation.reset();
+        fbSortierer.reset();
+
+        GVL.g_bStart = false;
+        GVL.g_bStop = false;
+        GVL.g_bBandLaeuft = false;
+        GVL.g_bBandStop = true;
+        GVL.g_bZaehlerReset = false;
+        GVL.g_bSystemReset = false;
+        GVL.g_bAutomatikbetrieb = true;
+        GVL.g_bHand_Weiche1 = false;
+        GVL.g_bHand_Weiche2 = false;
+
+        GVL.g_nProduktTyp = 0;
+        GVL.g_bProduktAktiv = false;
+        GVL.g_bWeiche1 = false;
+        GVL.g_bWeiche2 = false;
+        GVL.g_bSensor_Einlauf = false;
+        GVL.g_bSensor_TypA = false;
+        GVL.g_bSensor_TypB = false;
+        GVL.g_bSensor_Ausschuss = false;
+        GVL.g_bSensor_Auslauf = false;
+        GVL.g_bProduktAErkannt = false;
+        GVL.g_bProduktBErkannt = false;
+        GVL.g_bAusschussErkannt = false;
+
+        GVL.g_bLampe_Betrieb = false;
+        GVL.g_bLampe_BandSteht = true;
+        GVL.g_bLampe_ProduktA = false;
+        GVL.g_bLampe_ProduktB = false;
+        GVL.g_bLampe_Ausschuss = false;
+        GVL.g_bLampe_Weiche1 = false;
+        GVL.g_bLampe_Weiche2 = false;
+        GVL.g_bLampe_Automatikbetrieb = true;
+        GVL.g_bLampe_Handbetrieb = false;
+
+        GVL.g_nZaehler_A = 0;
+        GVL.g_nZaehler_B = 0;
+        GVL.g_nZaehler_Aus = 0;
+        GVL.g_nZaehler_Gesamt = 0;
+        GVL.g_nBlockPosX = 0;
+        GVL.g_nBlockPosY = 0;
+        GVL.g_bBlockVisible = false;
+        GVL.g_sBlockLabel = "";
+        GVL.g_nGeschwindigkeit = 5;
     }
 }

@@ -10,4 +10,8 @@ public class FB_Band {
             bLaeuft = false;
         }
     }
+
+    public void reset() {
+        bLaeuft = false;
+    }
 }

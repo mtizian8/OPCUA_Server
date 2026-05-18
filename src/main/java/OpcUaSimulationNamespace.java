@@ -14,6 +14,9 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
 import org.eclipse.milo.opcua.stack.core.types.builtin.Variant;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +29,8 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
     private final Map<String, UaVariableNode> nodes = new LinkedHashMap<>();
     private final Map<Object, DataItem> monitoredDataItems = new ConcurrentHashMap<>();
     private final long startupTimeMs = System.currentTimeMillis();
+    private final ZoneId serverZoneId = ZoneId.systemDefault();
+    private final DateTimeFormatter localTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(serverZoneId);
     private boolean heartbeat;
 
     public OpcUaSimulationNamespace(OpcUaServer server) {
@@ -37,11 +42,16 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
         gvl.g_bStart = readBoolean("Commands/Start");
         gvl.g_bStop = readBoolean("Commands/Stop");
         gvl.g_bZaehlerReset = readBoolean("Commands/CounterReset");
+        gvl.g_bSystemReset = readBoolean("Commands/SystemReset");
         gvl.g_nGeschwindigkeit = clamp(readInt("Commands/Speed"), 0, 10);
         write("Commands/Speed", gvl.g_nGeschwindigkeit);
         gvl.g_bAutomatikbetrieb = readBoolean("Commands/AutomaticMode");
         gvl.g_bHand_Weiche1 = readBoolean("Commands/ManualDiverter1");
         gvl.g_bHand_Weiche2 = readBoolean("Commands/ManualDiverter2");
+
+        if (gvl.g_bSystemReset) {
+            resetCommandNodes();
+        }
     }
 
     public void writeStateFrom(GVL gvl) {
@@ -86,9 +96,12 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
 
     public void writeSystemInfo(long cycleTimeMs, long updateIntervalMs, boolean simulationRunning) {
         long nowMs = System.currentTimeMillis();
+        Instant now = Instant.now();
         heartbeat = !heartbeat;
 
-        write("System/ServerTime", DateTime.now());
+        write("System/ServerTime", localDateTime(now));
+        write("System/ServerUtcTime", new DateTime(now));
+        write("System/ServerLocalTime", localTimeFormatter.format(now));
         write("System/UptimeSeconds", (int) ((nowMs - startupTimeMs) / 1000L));
         write("System/CycleTimeMs", (int) cycleTimeMs);
         write("System/UpdateIntervalMs", (int) updateIntervalMs);
@@ -117,6 +130,7 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
         variable(commands, "Start", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
         variable(commands, "Stop", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
         variable(commands, "CounterReset", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
+        variable(commands, "SystemReset", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
         variable(commands, "Speed", Identifiers.Int32, 5, AccessLevel.READ_WRITE);
         variable(commands, "AutomaticMode", Identifiers.Boolean, true, AccessLevel.READ_WRITE);
         variable(commands, "ManualDiverter1", Identifiers.Boolean, false, AccessLevel.READ_WRITE);
@@ -162,7 +176,9 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
         variable(animation, "BlockVisible", Identifiers.Boolean, false, AccessLevel.READ_ONLY);
         variable(animation, "BlockLabel", Identifiers.String, "", AccessLevel.READ_ONLY);
 
-        variable(system, "ServerTime", Identifiers.DateTime, DateTime.now(), AccessLevel.READ_ONLY);
+        variable(system, "ServerTime", Identifiers.DateTime, localDateTime(Instant.now()), AccessLevel.READ_ONLY);
+        variable(system, "ServerUtcTime", Identifiers.DateTime, DateTime.now(), AccessLevel.READ_ONLY);
+        variable(system, "ServerLocalTime", Identifiers.String, localTimeFormatter.format(Instant.now()), AccessLevel.READ_ONLY);
         variable(system, "UptimeSeconds", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
         variable(system, "CycleTimeMs", Identifiers.Int32, 0, AccessLevel.READ_ONLY);
         variable(system, "UpdateIntervalMs", Identifiers.Int32, 20, AccessLevel.READ_ONLY);
@@ -234,6 +250,21 @@ public class OpcUaSimulationNamespace extends ManagedNamespaceWithLifecycle {
 
     private int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private DateTime localDateTime(Instant now) {
+        return new DateTime(now.plusSeconds(serverZoneId.getRules().getOffset(now).getTotalSeconds()));
+    }
+
+    private void resetCommandNodes() {
+        write("Commands/Start", false);
+        write("Commands/Stop", false);
+        write("Commands/CounterReset", false);
+        write("Commands/SystemReset", false);
+        write("Commands/Speed", 5);
+        write("Commands/AutomaticMode", true);
+        write("Commands/ManualDiverter1", false);
+        write("Commands/ManualDiverter2", false);
     }
 
     @Override

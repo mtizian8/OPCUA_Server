@@ -185,4 +185,33 @@ public class FB_Animation {
     private boolean isInRange(int value, int min, int max) {
         return value >= min && value <= max;
     }
+
+    public void reset() {
+        nPosX = 0;
+        nPosY = 0;
+        bVisible = false;
+        sLabel = "";
+        bWeiche1 = false;
+        bWeiche2 = false;
+        bSensor_Einlauf = false;
+        bSensor_TypA = false;
+        bSensor_TypB = false;
+        bSensor_Ausschuss = false;
+        bSensor_Auslauf = false;
+        bProduktAErkannt = false;
+        bProduktBErkannt = false;
+        bAusschussErkannt = false;
+        bAnkunft = false;
+        nAnkunftTyp = 0;
+        nTyp = 0;
+        nPhase = 0;
+        tTaktMs = 0;
+        bSensorEinlaufLatched = false;
+        bSensorTypALatched = false;
+        bSensorTypBLatched = false;
+        bSensorAusschussLatched = false;
+        bSensorAuslaufLatched = false;
+        rTrig.reset();
+        tonTick.reset();
+    }
 }

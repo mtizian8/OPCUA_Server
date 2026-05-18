@@ -21,4 +21,10 @@ public class TON {
         Q = (now - startTimeMs) >= PT_ms;
         lastIN = true;
     }
+
+    public void reset() {
+        Q = false;
+        lastIN = false;
+        startTimeMs = 0;
+    }
 }
